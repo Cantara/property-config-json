@@ -128,8 +128,7 @@ public final class PropertyMapToJsonConverter {
                 "properties=" + properties + ", " +
                 "json=" + json + ']';
     }
-
-
+    
     static class PropertyTokenizer {
         private static final Pattern INTEGER_PATTERN = Pattern.compile("^\\d+$");
         private final String key;
@@ -144,6 +143,18 @@ public final class PropertyMapToJsonConverter {
 
         PropertyTokenizer(String property, String value) {
             this(property, value, tokenize(property, value));
+        }
+
+        public String key() {
+            return key;
+        }
+
+        public String value() {
+            return value;
+        }
+
+        public Property property() {
+            return property;
         }
 
         static Property tokenize(String property, String value) {
@@ -204,18 +215,6 @@ public final class PropertyMapToJsonConverter {
             return isArrayElement(token) && (nextToken != null && isObject(nextToken));
         }
 
-        public String key() {
-            return key;
-        }
-
-        public String value() {
-            return value;
-        }
-
-        public Property property() {
-            return property;
-        }
-
         @Override
         public boolean equals(Object obj) {
             if (obj == this) return true;
@@ -238,7 +237,6 @@ public final class PropertyMapToJsonConverter {
                     "value=" + value + ", " +
                     "property=" + property + ']';
         }
-
     }
 
     enum ElementType {
@@ -306,13 +304,23 @@ public final class PropertyMapToJsonConverter {
         }
     }
 
-    static class PropertyElementImpl implements PropertyElement {
+    private static class PropertyElementImpl implements PropertyElement {
         private final String key;
         private final ElementType type;
 
         public PropertyElementImpl(String key, ElementType type) {
             this.key = key;
             this.type = type;
+        }
+
+        @Override
+        public ElementType type() {
+            return type;
+        }
+
+        @Override
+        public String key() {
+            return key;
         }
 
         @Override
@@ -326,16 +334,6 @@ public final class PropertyMapToJsonConverter {
         @Override
         public int hashCode() {
             return Objects.hash(key, type);
-        }
-
-        @Override
-        public String key() {
-            return key;
-        }
-
-        @Override
-        public ElementType type() {
-            return type;
         }
 
         @Override

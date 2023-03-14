@@ -1,6 +1,6 @@
 # Property Config JSON Converter
 
-Converts string map to Jackson json structure.
+A really fast converter for string map to Jackson json structure.
 
 ```java
 ApplicationProperties config = ApplicationProperties.builder()

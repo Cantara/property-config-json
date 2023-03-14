@@ -18,10 +18,21 @@ import java.util.stream.IntStream;
 
 import static java.util.Optional.ofNullable;
 import static no.cantara.config.json.PropertyMapToJsonConverter.*;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 class PropertyMapToJsonConverterTest {
+
+    @Test
+    void convertPropertiesToJson() {
+        assertDoesNotThrow(() -> {
+            ApplicationProperties config = ApplicationProperties.builder()
+                    .classpathPropertiesFile("application-test.properties")
+                    .build();
+            PropertyMapToJsonConverter converter = new PropertyMapToJsonConverter(config.map());
+            ObjectNode json = converter.json();
+            //System.out.println(json.toPrettyString());
+        }, "Something went wrong!");
+    }
 
     @Test
     void loadPropertiesAndConvertToJson() {

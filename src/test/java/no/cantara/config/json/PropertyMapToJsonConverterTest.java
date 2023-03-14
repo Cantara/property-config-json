@@ -91,14 +91,16 @@ class PropertyMapToJsonConverterTest {
         }
 
         default JacksonAssert arrayCount(int exceptedSize) {
-            assertEquals(exceptedSize, json() instanceof ArrayNode ? ofNullable(json()).map(JsonNode::size).orElse(0) : 0);
+            int actual = json() instanceof ArrayNode ? ofNullable(json()).map(JsonNode::size).orElse(0) : 0;
+            assertEquals(exceptedSize, actual);
             return this;
         }
 
         default JacksonAssert arrayEquals(Object... excepted) {
-            if (!(json() instanceof ArrayNode arrayNode)) {
+            if (!(json() instanceof ArrayNode)) {
                 throw new IllegalArgumentException("Not an array-node!");
             }
+            ArrayNode arrayNode = (ArrayNode) json();
             List<Object> elements = new ArrayList<>();
             for (int i = 0; i < arrayNode.size(); i++) {
                 elements.add(arrayNode.get(i).textValue());
@@ -150,12 +152,70 @@ class PropertyMapToJsonConverterTest {
     }
 
 
-    record FluentJackson(JsonNode json) implements Jackson {
+    static class FluentJackson implements Jackson {
+        private final JsonNode json;
+
+        FluentJackson(JsonNode json) {
+            this.json = json;
+        }
+
+        @Override
+        public JsonNode json() {
+            return json;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) return true;
+            if (obj == null || obj.getClass() != this.getClass()) return false;
+            FluentJackson that = (FluentJackson) obj;
+            return Objects.equals(this.json, that.json);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(json);
+        }
+
+        @Override
+        public String toString() {
+            return "FluentJackson[" +
+                    "json=" + json + ']';
+        }
+
     }
 
-    record FluentJacksonAssert(JsonNode json) implements JacksonAssert {
-    }
+    static final class FluentJacksonAssert implements JacksonAssert {
+        private final JsonNode json;
 
+        FluentJacksonAssert(JsonNode json) {
+            this.json = json;
+        }
+
+        @Override
+        public JsonNode json() {
+            return json;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) return true;
+            if (obj == null || obj.getClass() != this.getClass()) return false;
+            FluentJacksonAssert that = (FluentJacksonAssert) obj;
+            return Objects.equals(this.json, that.json);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(json);
+        }
+
+        @Override
+        public String toString() {
+            return "FluentJacksonAssert[" +
+                    "json=" + json + ']';
+        }
+    }
 
     @Test
     void testTokenizer() {

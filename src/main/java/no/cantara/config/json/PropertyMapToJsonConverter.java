@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -14,10 +15,18 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 
-public record PropertyMapToJsonConverter(Map<String, String> properties, ObjectNode json) {
+public final class PropertyMapToJsonConverter {
+    private final Map<String, String> properties;
+    private final ObjectNode json;
+
+    public PropertyMapToJsonConverter(Map<String, String> properties, ObjectNode json) {
+        this.properties = properties;
+        this.json = json;
+    }
 
     public PropertyMapToJsonConverter(Map<String, String> propertyMap) {
         this(propertyMap, JsonNodeFactory.instance.objectNode());
@@ -25,7 +34,7 @@ public record PropertyMapToJsonConverter(Map<String, String> properties, ObjectN
         List<Property> propertyList = propertyMap.entrySet().stream()
                 .map(e -> new PropertyTokenizer(e.getKey(), e.getValue()))
                 .map(t -> t.property)
-                .toList();
+                .collect(Collectors.toList());
 
         Map<String, JsonNode> parentPathMap = new LinkedHashMap<>();
         parentPathMap.put("ROOT", json);
@@ -44,11 +53,26 @@ public record PropertyMapToJsonConverter(Map<String, String> properties, ObjectN
 
                 JsonNode parentNode = parentPathMap.get(parentPathElements);
 
-                JsonNode jsonNode = switch (propertyElement.type()) {
-                    case LEAF_NODE, ARRAY_ELEMENT -> JsonNodeFactory.instance.textNode(property.value);
-                    case OBJECT, ARRAY_OBJECT -> JsonNodeFactory.instance.objectNode();
-                    case ARRAY_NODE -> JsonNodeFactory.instance.arrayNode();
-                };
+                JsonNode jsonNode;
+                switch (propertyElement.type()) {
+                    case LEAF_NODE:
+                        jsonNode = JsonNodeFactory.instance.textNode(property.value);
+                        break;
+                    case ARRAY_ELEMENT:
+                        jsonNode = JsonNodeFactory.instance.textNode(property.value);
+                        break;
+                    case OBJECT:
+                        jsonNode = JsonNodeFactory.instance.objectNode();
+                        break;
+                    case ARRAY_OBJECT:
+                        jsonNode = JsonNodeFactory.instance.objectNode();
+                        break;
+                    case ARRAY_NODE:
+                        jsonNode = JsonNodeFactory.instance.arrayNode();
+                        break;
+                    default:
+                        throw new IllegalStateException();
+                }
 
                 // skip already handled path
                 if (!visitedPaths.add(nextParentPathElements)) {
@@ -58,11 +82,11 @@ public record PropertyMapToJsonConverter(Map<String, String> properties, ObjectN
                 // set next parentNode
                 JsonNode childNode = parentPathMap.computeIfAbsent(nextParentPathElements, k -> jsonNode);
 
-                if (parentNode instanceof ObjectNode parent) {
-                    parent.set(propertyElement.key(), childNode);
+                if (parentNode instanceof ObjectNode) {
+                    ((ObjectNode) parentNode).set(propertyElement.key(), childNode);
 
-                } else if (parentNode instanceof ArrayNode parent) {
-                    parent.add(childNode);
+                } else if (parentNode instanceof ArrayNode) {
+                    ((ArrayNode) parentNode).add(childNode);
 
                 } else {
                     throw new IllegalStateException("property-element-pos: " + i + " => " + parentNode);
@@ -72,12 +96,51 @@ public record PropertyMapToJsonConverter(Map<String, String> properties, ObjectN
     }
 
     private static String getPathElementsByProperty(Property property, int limit) {
-        List<String> parentPathElementList = property.elements.stream().limit(limit).map(PropertyElement::key).toList();
+        List<String> parentPathElementList = property.elements.stream().limit(limit).map(PropertyElement::key).collect(Collectors.toList());
         return "ROOT" + (parentPathElementList.isEmpty() ? "" : "." + String.join(".", parentPathElementList));
     }
 
-    record PropertyTokenizer(String key, String value, Property property) {
+    public Map<String, String> properties() {
+        return properties;
+    }
+
+    public ObjectNode json() {
+        return json;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) return true;
+        if (obj == null || obj.getClass() != this.getClass()) return false;
+        PropertyMapToJsonConverter that = (PropertyMapToJsonConverter) obj;
+        return Objects.equals(this.properties, that.properties) &&
+                Objects.equals(this.json, that.json);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(properties, json);
+    }
+
+    @Override
+    public String toString() {
+        return "PropertyMapToJsonConverter[" +
+                "properties=" + properties + ", " +
+                "json=" + json + ']';
+    }
+
+
+    static class PropertyTokenizer {
         private static final Pattern INTEGER_PATTERN = Pattern.compile("^\\d+$");
+        private final String key;
+        private final String value;
+        private final Property property;
+
+        PropertyTokenizer(String key, String value, Property property) {
+            this.key = key;
+            this.value = value;
+            this.property = property;
+        }
 
         PropertyTokenizer(String property, String value) {
             this(property, value, tokenize(property, value));
@@ -86,7 +149,8 @@ public record PropertyMapToJsonConverter(Map<String, String> properties, ObjectN
         static Property tokenize(String property, String value) {
             List<PropertyElement> elementList = new ArrayList<>();
 
-            List<String> list = List.of(property.split("\\."));
+
+            List<String> list = Arrays.asList(property.split("\\."));
             String previous = null;
             for (int i = 0; i < list.size(); i++) {
                 String current = list.get(i);
@@ -139,6 +203,42 @@ public record PropertyMapToJsonConverter(Map<String, String> properties, ObjectN
         private static boolean isArrayObject(String token, String nextToken) {
             return isArrayElement(token) && (nextToken != null && isObject(nextToken));
         }
+
+        public String key() {
+            return key;
+        }
+
+        public String value() {
+            return value;
+        }
+
+        public Property property() {
+            return property;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) return true;
+            if (obj == null || obj.getClass() != this.getClass()) return false;
+            PropertyTokenizer that = (PropertyTokenizer) obj;
+            return Objects.equals(this.key, that.key) &&
+                    Objects.equals(this.value, that.value) &&
+                    Objects.equals(this.property, that.property);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(key, value, property);
+        }
+
+        @Override
+        public String toString() {
+            return "PropertyTokenizer[" +
+                    "key=" + key + ", " +
+                    "value=" + value + ", " +
+                    "property=" + property + ']';
+        }
+
     }
 
     enum ElementType {
@@ -149,8 +249,29 @@ public record PropertyMapToJsonConverter(Map<String, String> properties, ObjectN
         ARRAY_OBJECT;
     }
 
+    static class Property {
+        private final String key;
+        private final String value;
+        private final List<PropertyElement> elements;
 
-    record Property(String key, String value, List<PropertyElement> elements) {
+        Property(String key, String value, List<PropertyElement> elements) {
+            this.key = key;
+            this.value = value;
+            this.elements = elements;
+        }
+
+        public String key() {
+            return key;
+        }
+
+        public String value() {
+            return value;
+        }
+
+        public List<PropertyElement> elements() {
+            return elements;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -163,6 +284,15 @@ public record PropertyMapToJsonConverter(Map<String, String> properties, ObjectN
         public int hashCode() {
             return Objects.hash(key, value);
         }
+
+        @Override
+        public String toString() {
+            return "Property[" +
+                    "key=" + key + ", " +
+                    "value=" + value + ", " +
+                    "elements=" + elements + ']';
+        }
+
     }
 
     interface PropertyElement {
@@ -171,23 +301,48 @@ public record PropertyMapToJsonConverter(Map<String, String> properties, ObjectN
 
         ElementType type();
 
-        record PropertyElementImpl(String key, ElementType type) implements PropertyElement {
-            @Override
-            public boolean equals(Object o) {
-                if (this == o) return true;
-                if (o == null || getClass() != o.getClass()) return false;
-                PropertyElementImpl that = (PropertyElementImpl) o;
-                return Objects.equals(key, that.key) && type == that.type;
-            }
-
-            @Override
-            public int hashCode() {
-                return Objects.hash(key, type);
-            }
-        }
-
         static PropertyElement of(String property, ElementType type) {
             return new PropertyElementImpl(property, type);
+        }
+    }
+
+    static class PropertyElementImpl implements PropertyElement {
+        private final String key;
+        private final ElementType type;
+
+        public PropertyElementImpl(String key, ElementType type) {
+            this.key = key;
+            this.type = type;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PropertyElementImpl that = (PropertyElementImpl) o;
+            return Objects.equals(key, that.key) && type == that.type;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(key, type);
+        }
+
+        @Override
+        public String key() {
+            return key;
+        }
+
+        @Override
+        public ElementType type() {
+            return type;
+        }
+
+        @Override
+        public String toString() {
+            return "PropertyElementImpl[" +
+                    "key=" + key + ", " +
+                    "type=" + type + ']';
         }
     }
 }

@@ -87,7 +87,7 @@ public final class PropertyMapToJsonConverter {
 
                 } else if (parentNode instanceof ArrayNode) {
                     // ignore empty elements
-                    if (childNode.isEmpty()) {
+                    if (property.value.isEmpty()) {
                         continue;
                     }
                     ((ArrayNode) parentNode).add(childNode);

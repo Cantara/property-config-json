@@ -92,10 +92,13 @@ class PropertyMapToJsonConverterTest {
     void emptyArrayProperty() {
         ApplicationProperties config = ApplicationProperties.builder()
                 .property("foo.bar.0", "")
+                .property("bar.foo.0", "foo")
                 .build();
         PropertyMapToJsonConverter converter = new PropertyMapToJsonConverter(config.map());
         ObjectNode json = converter.json();
-        System.out.printf("%s%n", json.toPrettyString());
+        //System.out.printf("%s%n", json.toPrettyString());
+        Jackson.of(json).with("foo").with("bar").assertion().arrayCount(0);
+        Jackson.of(json).with("bar").with("foo").assertion().arrayCount(1);
     }
 
     interface JacksonAssert {

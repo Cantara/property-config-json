@@ -88,6 +88,16 @@ class PropertyMapToJsonConverterTest {
         assertEquals(metadata.size(), assertionCount.get());
     }
 
+    @Test
+    void emptyArrayProperty() {
+        ApplicationProperties config = ApplicationProperties.builder()
+                .property("foo.bar.0", "")
+                .build();
+        PropertyMapToJsonConverter converter = new PropertyMapToJsonConverter(config.map());
+        ObjectNode json = converter.json();
+        System.out.printf("%s%n", json.toPrettyString());
+    }
+
     interface JacksonAssert {
         JsonNode json();
 

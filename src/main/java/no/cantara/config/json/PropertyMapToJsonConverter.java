@@ -86,6 +86,10 @@ public final class PropertyMapToJsonConverter {
                     ((ObjectNode) parentNode).set(propertyElement.key(), childNode);
 
                 } else if (parentNode instanceof ArrayNode) {
+                    // ignore empty elements
+                    if (childNode.isEmpty()) {
+                        continue;
+                    }
                     ((ArrayNode) parentNode).add(childNode);
 
                 } else {
@@ -128,7 +132,7 @@ public final class PropertyMapToJsonConverter {
                 "properties=" + properties + ", " +
                 "json=" + json + ']';
     }
-    
+
     static class PropertyTokenizer {
         private static final Pattern INTEGER_PATTERN = Pattern.compile("^\\d+$");
         private final String key;

@@ -5,7 +5,7 @@
 
     <groupId>no.cantara.config</groupId>
     <artifactId>property-config-json</artifactId>
-    <version>0.0.18-SNAPSHOT</version>
+    <version>0.0.18</version>
     <packaging>jar</packaging>
 
     <developers>
@@ -27,7 +27,7 @@
     <scm>
         <developerConnection>scm:git:ssh://git@github.com/cantara/property-config-json.git</developerConnection>
         <connection>scm:git:https://github.com/cantara/property-config-json.git</connection>
-        <tag>HEAD</tag>
+        <tag>property-config-json-0.0.18</tag>
     </scm>
     <url>https://github.com/cantara/property-config-json</url>
 
